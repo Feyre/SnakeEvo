@@ -81,19 +81,21 @@ class Python(object):
 
 
     def half_state(self):
-        #state = []
-        #state.append(self._snake[0][0])
-        #state.append(self._snake[0][1])
-        #state.append(self.width-1)
-        #state.append(self.height-1)
-        #state.append(0)
-        #state.append(0)
-	#return state
-	#position = (self._snake[0][0], self._snake[0][1])
-	#trace = self.cheap_cast()
-	#print('method1', trace)
-	#print('method2', self.cheap_cast())
-	return trace
+        range = 1
+        position = [self._snake[0][0], self._snake[0][1]]
+        state = np.asarray(self.full_state())
+
+        if position[0]-1 < 0:
+            position[0] += 1
+        elif position[0] >= state.shape[0]:
+            position[0] -= 1
+        if position[1]-1 < 0:
+            position[1] += 1
+        elif position[1] >= state.shape[1]:
+            position[1] -= 1
+
+        field = state[position[0]-range:position[0]+range+1, position[1]-range:position[1]+range+1]
+	return field
 
 
     def smart_cast(self):
@@ -309,8 +311,8 @@ def eval_genome(genome, config, display=False):
         sim.step(action_to_dir(action))
 	if display:
             graph.draw(sim.full_state())
-	    #print(sim.full_state())
-	    time.sleep(0.4)
+	    print(sim.half_state().transpose())
+	    time.sleep(2)
 
 
 	#print('halfstate', inputs)
