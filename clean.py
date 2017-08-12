@@ -181,11 +181,12 @@ class Python(object):
         return walls
 
     def generate_food(self):
-	#while len(self._food) < NUM_FOOD:
-	#    bite = (np.random.randint(1,self.width-1,1)[0], np.random.randint(1,self.height-1,1)[0])
-	#    if bite not in self._food and bite not in self._snake and bite not in self._walls:
-	#	self._food.append(bite)
-	self._food = [(1,1),(5,6),(8,2),(2,8),(8,8)]
+        np.random.seed(2)
+	while len(self._food) < NUM_FOOD:
+	    bite = (np.random.randint(1,self.width-1,1)[0], np.random.randint(1,self.height-1,1)[0])
+	    if bite not in self._food and bite not in self._snake and bite not in self._walls:
+		self._food.append(bite)
+	#self._food = [(1,1),(5,6),(8,2),(2,8),(8,8)]
 
 
 
@@ -303,8 +304,9 @@ def eval_genome(genome, config, display=False):
 
     fitness = 0.0
     while sim._step < simulation_steps:
-        inputs = sim.full_state()
-	inputs = np.asarray(inputs).flatten()
+        # inputs = sim.full_state()
+        # inputs = np.asarray(inputs).flatten()
+        inputs = sim.half_state().flatten()
         action = net.activate(inputs)
 
         # force = snake.convert(action)
@@ -312,7 +314,7 @@ def eval_genome(genome, config, display=False):
 	if display:
             graph.draw(sim.full_state())
 	    print(sim.half_state().transpose())
-	    time.sleep(2)
+	    time.sleep(0.1)
 
 
 	#print('halfstate', inputs)
@@ -349,7 +351,7 @@ def run():
     pop.add_reporter(neat.StdOutReporter(True))
 
     pe = neat.ParallelEvaluator(4, eval_genome)
-    winner = pop.run(pe.evaluate, 5)
+    winner = pop.run(pe.evaluate, 20)
     #winner = pop.run(eval_genomes, 300)
 
     eval_genome(winner, config, display=True)
@@ -382,41 +384,9 @@ def run_winner(name):
 
 
 
-def test2():
-    game.step((0,1))
-    graph.master.after(200, test2)
-
-def test():
-    print('launched ml')
-    graph.master.mainloop()
-
-def gloop():
-    while(game._step < 10):
-	game.step((0,1))
-	graph.draw(game.full_state())
-	#graph.master.up
-	#graph.master.update()
-	time.sleep(0.1)
-	print('in gloop')
-
-    graph.master.destroy()
-
-    while(True):
-	pass
 
 
 
 if __name__ == '__main__':
     run()
-    #run_winner('winner')
-
-
-
-
-    #game = Python(50, 50, [(20, 20), (19,20),(18,20),(17,20)])
-    #graph = Graphics(500, 500)
-
-
-
-    #th = threading.Thread(name='ml', target=test)
-    #gloop()
+    # run_winner('winner')
