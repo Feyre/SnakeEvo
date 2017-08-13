@@ -11,14 +11,12 @@ import os
 import neat
 import pickle
 
-import sys
+SEED = 5
+NUM_FOOD = 5
+FOOD_SCORE = 10
 
-SEED = 5            # critical
-NUM_FOOD = 25       # critical
-FOOD_SCORE = 10     # critical for training
-
-RANGE = 2           # critical
-GAME_SIZE = 50      # critical
+RANGE = 1
+GAME_SIZE = 10
 DISPLAY_SIZE = 500
 STEP_SPEED = 0.1
 
@@ -27,12 +25,10 @@ SNAKE_REP = 1
 WALL_REP = 2
 FOOD_REP = 3
 
-SNAKE_INIT = [(5, 5), (4, 5),(3, 5),(2,5)]  # critical
+SNAKE_INIT = [(5, 5), (4, 5),(3, 5),(2,5)]
 
-SIM_STEPS = GAME_SIZE*GAME_SIZE             # critical
+SIM_STEPS = 200
 MAX_GENERATIONS = 100
-DISPLAY_ALL = FALSE
-
 
 
 class Python(object):
@@ -54,7 +50,7 @@ class Python(object):
     def __init__(self, width, height, snake):
         self.width = width
         self.height = height
-        self._snake = snake[:] # for deep copy, otherwise init keeps changing and game never restarts
+        self._snake = snake
         self._alive = True
         self._step = 0
         self._score = 0
@@ -117,7 +113,11 @@ class Python(object):
         trace.append(np.argmax(right > 0))
         return trace
 
-    def bad_full_state(self):
+
+
+
+
+    def full_state(self):
         state = []
         for x in range(self.width):
             col = []
@@ -134,32 +134,24 @@ class Python(object):
         return state
 
 
-
-
-    def full_state(self):
-        state = np.zeros((self.width, self.height))
-        for cell in self._snake:
-            state[cell[0], cell[1]] = SNAKE_REP
-        for cell in self._walls:
-            state[cell[0], cell[1]] = WALL_REP
-        for cell in self._food:
-            state[cell[0], cell[1]] = FOOD_REP
-        return state
-
     def half_state(self):
-        # cant handle if snake off screen
         position = [self._snake[0][0], self._snake[0][1]]
         state = np.asarray(self.full_state())
 
-        if position[0]-RANGE < 0:
-            position[0] = RANGE
-        elif position[0] >= state.shape[0]-RANGE:
-            position[0] = state.shape[0]-RANGE-1
-        if position[1]-RANGE < 0:
-            position[1] = RANGE
-        elif position[1] >= state.shape[1]-RANGE:
-            position[1] = state.shape[1]-RANGE-1
+        # print('t1', position[0], state.shape[0]-1)
+        # print('t1', position[1], state.shape[1]-1)
+        if position[0]-1 < 0:
+            position[0] += 1
+        elif position[0] >= state.shape[0]-1:
+            position[0] -= 1
+        if position[1]-1 < 0:
+            position[1] += 1
+        elif position[1] >= state.shape[1]-1:
+            position[1] -= 1
 
+        # print(position, state.shape)
+        # print('pos', position[0], position[1])
+        # print('field', position[0]-RANGE,position[0]+RANGE+1, position[1]-RANGE,position[1]+RANGE+1)
         field = state[position[0]-RANGE:position[0]+RANGE+1, position[1]-RANGE:position[1]+RANGE+1]
         return field
 
@@ -207,8 +199,7 @@ class Python(object):
 
 
     def step(self, snake_dir):
-        if self._alive:
-            self.move_snake(snake_dir)
+        self.move_snake(snake_dir)
 
         if self.check_collision():
             self._alive = False
@@ -271,11 +262,11 @@ class Graphics(object):
         for y in range(shape[1]):
             for x in range(shape[0]):
                 if full_state[x][y] == BLANK_REP:
-                    self.window.create_rectangle(x*box_size, y*box_size, box_size+x*box_size, box_size+y*box_size, width=0, fill='#000')
+                    self.window.create_rectangle(x*box_size, y*box_size, box_size+x*box_size, box_size+y*box_size, width=0, fill='#000000')
                 elif full_state[x][y] == SNAKE_REP:
-                    self.window.create_rectangle(x*box_size, y*box_size, box_size+x*box_size, box_size+y*box_size, width=0, fill='#fff')
+                    self.window.create_rectangle(x*box_size, y*box_size, box_size+x*box_size, box_size+y*box_size, width=0, fill='#000000fff')
                 elif full_state[x][y] == WALL_REP:
-                    self.window.create_rectangle(x*box_size, y*box_size, box_size+x*box_size, box_size+y*box_size, width=0, fill='#fff444444')
+                    self.window.create_rectangle(x*box_size, y*box_size, box_size+x*box_size, box_size+y*box_size, width=0, fill='#fff000000')
                 elif full_state[x][y] == FOOD_REP:
                     self.window.create_rectangle(x*box_size, y*box_size, box_size+x*box_size, box_size+y*box_size, width=0, fill='#000fff000')
         self.master.update()
@@ -326,9 +317,8 @@ def action_to_dir(action):
 
 genome_count = 0
 
-def eval_genome(genome, config, display=DISPLAY_ALL):
+def eval_genome(genome, config, display=True):
     net = neat.nn.FeedForwardNetwork.create(genome, config)
-
     #print(genome)
     #master = Tk()
 
@@ -337,6 +327,8 @@ def eval_genome(genome, config, display=DISPLAY_ALL):
     #display = True
     #if genome_count%10:
     #display = False
+
+    print('starting game')
 
     sim = Python(GAME_SIZE, GAME_SIZE, SNAKE_INIT)
     if display:
@@ -347,6 +339,7 @@ def eval_genome(genome, config, display=DISPLAY_ALL):
         # inputs = sim.full_state()
         # inputs = np.asarray(inputs).flatten()
         inputs = sim.half_state().flatten()
+        print(sim.half_state().transpose())
         # print(sim.full_state)
         action = net.activate(inputs)
 
@@ -364,10 +357,11 @@ def eval_genome(genome, config, display=DISPLAY_ALL):
         #print('fitness', fitness)
 
         #time.sleep(1)
+        print(sim._alive)
         if not sim._alive:
             break
 
-        fitness = sim._score #+ sim._step
+        fitness = sim._score + sim._step
     return fitness
 
     #time.sleep(1)
@@ -380,10 +374,10 @@ def eval_genome(genome, config, display=DISPLAY_ALL):
 
 
 def eval_genomes(genomes, config):
-    # print('Evaluating Genomes!')
+    print('Evaluating Genomes!')
     for genome_id, genome in genomes:
         # print('Genome_ID:', genome_id)
-        genome.fitness = eval_genome(genome, config)
+        genome.fitness = eval_genome(genome, config, display=True)
 
 
 
@@ -397,14 +391,14 @@ def run():
     pop.add_reporter(stats)
     pop.add_reporter(neat.StdOutReporter(True))
 
-    pe = neat.ParallelEvaluator(4, eval_genome)
-    winner = pop.run(pe.evaluate, MAX_GENERATIONS)
-    # winner = pop.run(eval_genomes, MAX_GENERATIONS)
+    # pe = neat.ParallelEvaluator(4, eval_genome)
+    # winner = pop.run(pe.evaluate, MAX_GENERATIONS)
+    winner = pop.run(eval_genomes, MAX_GENERATIONS)
 
     eval_genome(winner, config, display=True)
 
     with open('winner', 'wb') as f:
-        pickle.dump([winner,[SEED, NUM_FOOD, RANGE, GAME_SIZE]], f)
+        pickle.dump(winner, f)
 
     print(winner)
 
@@ -415,15 +409,7 @@ def run_winner(name):
     local_dir = os.path.dirname(__file__)
     config_path = os.path.join(local_dir, 'config')
     config = neat.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path)
-    data = pickle.load(open(name,'rb'))
-    winner = data[0]
-
-    global SEED, NUM_FOOD, RANGE, GAME_SIZE
-    SEED = data[1][0]
-    NUM_FOOD = data[1][1]
-    RANGE = data[1][2]
-    GAME_SIZE = data[1][3]
-
+    winner = pickle.load(open(name,'rb'))
     eval_genome(winner, config, display=True)
 
 
@@ -445,7 +431,5 @@ def run_winner(name):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        run_winner(sys.argv[1])
-    else:
-        run()
+    run()
+    # run_winner('winner')
