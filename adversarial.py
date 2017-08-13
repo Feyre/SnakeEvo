@@ -28,6 +28,7 @@ WALL_REP = 2
 FOOD_REP = 3
 
 SNAKE_INIT = [(5, 5), (4, 5),(3, 5),(2,5)]  # critical
+SNAKE2_INIT = [(5, 5), (4, 5),(3, 5),(2,5)]  # critical
 
 SIM_STEPS = GAME_SIZE*GAME_SIZE             # critical
 MAX_GENERATIONS = 25
@@ -51,90 +52,17 @@ class Python(object):
     1 - snake
     2 - walls
     """
-    def __init__(self, width, height, snake):
+    def __init__(self, width, height, snake, snake2):
         self.width = width
         self.height = height
         self._snake = snake[:] # for deep copy, otherwise init keeps changing and game never restarts
+        self._snake2 = snake[:] # for deep copy, otherwise init keeps changing and game never restarts
         self._alive = True
         self._step = 0
-        self._score = 0
+        self._score = 0SNAKE_INIT
         self._walls = self.generate_walls()
         self._food = []
-        self.generate_food()
-
-
-
-
-    def cheap_cast(self):
-        trace = []
-        trace.append(self.height - self._snake[0][1]-1) #maybe remove -1's?
-        trace.append(self._snake[0][1])
-        trace.append(self._snake[0][0])
-        trace.append(self.width - self._snake[0][0]-1)
-        if self._snake[1][0] < self._snake[0][0]:
-            trace[2] = 1
-        elif self._snake[1][0] > self._snake[0][0]:
-            trace[3] = 1
-        elif self._snake[1][1] < self._snake[0][1]:
-            trace[1] = 1
-        else:
-            trace[0] = 1
-        return trace
-
-    def cast(self, pos):
-        fs = self.full_state()
-        trace = []
-        dirs = [(0,1),(0,-1),(-1,0),(1,0)]
-        for d in dirs:
-            x = pos[0]
-            y = pos[1]
-            dist = 0
-            while True:
-                #will crash if not hit a block and goes outside of array
-                #is also wrong and one off (is at 2 when on edge of map)
-                x += d[0]
-                y += d[1]
-                dist += 1
-                if fs[x][y] != 0:
-                    break
-            trace.append(dist)
-        return trace
-
-    def cast2(self, pos):
-        fs = self.full_state()
-        fs = np.asarray(fs)
-
-        # segments on each side of pos
-        left = fs[0:pos[0],pos[1]]
-        right = fs[pos[0]+1:,pos[1]]
-        up = fs[pos[0],0:pos[1]]
-        down = fs[pos[0],pos[1]+1:]
-
-        trace = []
-        trace.append(np.argmax(down > 0))
-        trace.append(np.argmax(up[::-1] > 0))
-        trace.append(np.argmax(left[::-1] > 0))
-        trace.append(np.argmax(right > 0))
-        return trace
-
-    def bad_full_state(self):
-        state = []
-        for x in range(self.width):
-            col = []
-            for y in range(self.height):
-                if (x, y) in self._snake:
-                    col.append(SNAKE_REP)
-                elif (x, y) in self._walls:
-                    col.append(WALL_REP)
-                elif (x, y) in self._food:
-                    col.append(FOOD_REP)
-                else:
-                    col.append(BLANK_REP)
-            state.append(col)
-        return state
-
-
-
+        # self.generate_food()
 
     def full_state(self):
         state = np.zeros((self.width, self.height))
@@ -163,7 +91,6 @@ class Python(object):
         field = state[position[0]-RANGE:position[0]+RANGE+1, position[1]-RANGE:position[1]+RANGE+1]
         return field
 
-
     def generate_walls(self):
         walls = []
         for x in range(self.width):
@@ -181,8 +108,6 @@ class Python(object):
             if bite not in self._food and bite not in self._snake and bite not in self._walls:
                 self._food.append(bite)
         #self._food = [(1,1),(5,6),(8,2),(2,8),(8,8)]
-
-
 
     def vec_add(self, (x1, y1), (x2, y2)):
         return (x1 + x2, y1 + y2)
@@ -278,6 +203,8 @@ class Graphics(object):
                     self.window.create_rectangle(x*box_size, y*box_size, box_size+x*box_size, box_size+y*box_size, width=0, fill='#fff444444')
                 elif full_state[x][y] == FOOD_REP:
                     self.window.create_rectangle(x*box_size, y*box_size, box_size+x*box_size, box_size+y*box_size, width=0, fill='#77f')
+                elif full_state[x][y] == SNAKE2_REP:
+                    self.window.create_rectangle(x*box_size, y*box_size, box_size+x*box_size, box_size+y*box_size, width=0, fill='#0f0')
         self.master.update()
 
     def end(self):
@@ -329,16 +256,8 @@ genome_count = 0
 def eval_genome(genome, config, display=DISPLAY_ALL):
     net = neat.nn.FeedForwardNetwork.create(genome, config)
 
-    #print(genome)
-    #master = Tk()
 
-    #global genome_count
-    #genome_count += 1
-    #display = True
-    #if genome_count%10:
-    #display = False
-
-    sim = Python(GAME_SIZE, GAME_SIZE, SNAKE_INIT)
+    sim = Python(GAME_SIZE, GAME_SIZE, SNAKE_INIT, SNAKE2_INIT)
     if display:
         graph = Graphics(DISPLAY_SIZE, DISPLAY_SIZE)
 
